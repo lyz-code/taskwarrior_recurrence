@@ -1,0 +1,14 @@
+json.depends.array=off
+recurrence=no
+report.recurring.filter=status:recurring
+uda.rtype.label=Recur.Type
+uda.rtype.type=string
+uda.rtype.values=chained,periodic
+uda.r.label=R
+uda.r.type=string
+uda.rparent.label=Recur.Parent
+uda.rparent.type=string
+uda.rlastinstance.label=Recur.Last.Instance
+uda.rlastinstance.type=string
+uda.myuda.label=Personal uda
+uda.myuda.type=string
