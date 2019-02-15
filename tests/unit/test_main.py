@@ -1,3 +1,4 @@
+import os
 import json
 import tasklib
 import tzlocal
@@ -99,31 +100,6 @@ class TestProcessRecurrentTask(unittest.TestCase):
             [call('rparent', self.task['uuid'])]
         )
         self.assertTrue(copyMock.return_value.save.called)
-
-    def test_add_recurrent_creates_child_task_with_wait_attribute(self):
-        self.task_data = {
-            "entry": "20180802T194712Z",
-            "uuid": "3f0a43d0-a713-4ebe-9e5c-b1facf49f078",
-            "modified": "20180806T085429Z",
-            "status": "pending",
-            "description": "This is a chained recurring task",
-            "rtype": "chained",
-            "due": '20180808T085429Z',
-            "wait": '20180802T085429Z',
-            "r": '3d',
-            "project": 'test_project',
-            "myuda": 'udavalue',
-        }
-        self.task.__getitem__.side_effect = self.task_data.__getitem__
-        self.task._data.copy.return_value = self.task_data.copy()
-        self.prt = ProcessRecurrentTask(self.task)
-
-        self.prt.add_recurrent_task()
-        child_task = self.tasklib.Task.return_value
-        self.assertTrue(
-            call('wait', self.task['wait'])
-            in child_task.__setitem__.mock_calls
-        )
 
     def test_add_recurrent_sets_recur_to_r_in_parent(self):
         parent_task = self.prt.add_recurrent_task()
@@ -239,8 +215,8 @@ class TestChildChainedTask(unittest.TestCase):
                 '20180708T010000',
                 "%Y%m%dT%H%M%S",
             ),
-            "wait": None,
-            "scheduled": None,
+            "rwait": None,
+            "rscheduled": None,
             "r": '3d',
             'rtype': 'chained',
             "recur": '3d',
@@ -272,7 +248,7 @@ class TestChildChainedTask(unittest.TestCase):
             "rtype": "chained",
             "rlastinstance": "012339c8-a8fe-41da-82db-a990f989237e",
             "due": '20180808T085429Z',
-            "wait": '20180802T085429Z',
+            "rwait": '20180802T085429Z',
             "r": '3d',
         }
         self.task.__getitem__.side_effect = self.task_data.__getitem__
@@ -309,8 +285,8 @@ class TestChildChainedTask(unittest.TestCase):
                 '20180708T010000',
                 "%Y%m%dT%H%M%S",
             ),
-            "wait": None,
-            "scheduled": None,
+            "rwait": None,
+            "rscheduled": None,
             "r": '3d',
             "recur": '3d',
             "rlastinstance": self.task_data['uuid'],
@@ -338,8 +314,8 @@ class TestChildChainedTask(unittest.TestCase):
                 '20180708T010000',
                 "%Y%m%dT%H%M%S",
             ),
-            "wait": None,
-            "scheduled": None,
+            "rwait": None,
+            "rscheduled": None,
             "r": '3d',
             "recur": '3d',
             "rlastinstance": self.task_data['uuid'],
@@ -374,7 +350,7 @@ class TestChildChainedTask(unittest.TestCase):
         )
 
     def test_synthetize_next_chained_shifts_wait(self):
-        self.parent_task_data['wait'] = datetime.datetime.strptime(
+        self.parent_task_data['rwait'] = datetime.datetime.strptime(
             '20180706T010000',
             "%Y%m%dT%H%M%S",
         )
@@ -393,14 +369,14 @@ class TestChildChainedTask(unittest.TestCase):
                 'wait', '{} - ({} - {})'.format(
                     next_task_due.isoformat(),
                     self.parent_task_data['due'].isoformat(),
-                    self.parent_task_data['wait'].isoformat()
+                    self.parent_task_data['rwait'].isoformat()
                 )
             ) in
             next_task.__setitem__.mock_calls
         )
 
     def test_synthetize_next_chained_shifts_scheduled(self):
-        self.parent_task_data['scheduled'] = datetime.datetime.strptime(
+        self.parent_task_data['rscheduled'] = datetime.datetime.strptime(
                 '20180706T010000',
                 "%Y%m%dT%H%M%S",
             )
@@ -413,13 +389,14 @@ class TestChildChainedTask(unittest.TestCase):
 
         self.prt.synthetize_next_chained()
 
-        # instance.wait: new_instance.due - (template.due - template.scheduled)
+        # instance.scheduled: new_instance.due - \
+        # (template.due - template.scheduled)
         self.assertTrue(
             call(
                 'scheduled', '{} - ({} - {})'.format(
                     next_task_due.isoformat(),
                     self.parent_task_data['due'].isoformat(),
-                    self.parent_task_data['scheduled'].isoformat()
+                    self.parent_task_data['rscheduled'].isoformat()
                 )
             ) in
             next_task.__setitem__.mock_calls
@@ -521,10 +498,11 @@ class TestChildPeriodicTask(unittest.TestCase):
         self.tzlocal_patch.stop()
 
     def import_task(self, task_data):
-        with open(self.temp_dir + 'task_data.json', 'w') as f:
+        json_path = os.path.join(self.temp_dir, 'task_data.json')
+        with open(json_path, 'w') as f:
             f.write(json.dumps(task_data))
-        self.tw.execute_command(['import', self.temp_dir + 'task_data.json'])
-        return self.tw.tasks.get(uuid=self.task_data['uuid'])
+        self.tw.execute_command(['import', json_path])
+        return self.tw.tasks.get(uuid=task_data['uuid'])
 
     def test_synthetize_next_periodic_creates_new_clean_task(self):
         # Make sure there isn't any created task
@@ -656,14 +634,15 @@ class TestChildPeriodicTask(unittest.TestCase):
 
     def test_synthetize_next_periodic_shifts_wait(self):
 
+        self.parent_task.delete()
         self.parent_task_data = {
             "entry": "20370701T194712Z",
             "uuid": "012339c8-a8fe-41da-82db-a990f989237e",
             "modified": "20370706T085429Z",
             "status": "recurring",
-            "description": "This is a periodic recurring task",
+            "description": "This is a waiting periodic recurring task",
             "due": '20370708T010000',
-            "wait": '20370705T010000',
+            "rwait": '20370705T010000',
             "r": '1w',
             'rtype': 'periodic',
             "recur": '1w',
@@ -694,7 +673,7 @@ class TestChildPeriodicTask(unittest.TestCase):
             "status": "recurring",
             "description": "This is a periodic recurring task",
             "due": '20370708T010000',
-            "scheduled": '20370705T010000',
+            "rscheduled": '20370705T010000',
             "r": '1w',
             'rtype': 'periodic',
             "recur": '1w',

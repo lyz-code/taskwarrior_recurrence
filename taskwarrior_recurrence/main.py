@@ -43,6 +43,15 @@ class ProcessRecurrentTask():
 
         parent_task = self.tw.tasks.get(uuid=self.task['rparent'])
 
+        if type(parent_task['rwait']) is str:
+            parent_task['rwait'] = self.tw.convert_datetime_string(
+                parent_task['rwait']
+            )
+        if type(parent_task['rscheduled']) is str:
+            parent_task['rscheduled'] = self.tw.convert_datetime_string(
+                parent_task['rscheduled']
+            )
+
         if parent_task['rtype'] == 'chained':
             self.synthetize_next_chained()
         elif parent_task['rtype'] == 'periodic':
@@ -67,17 +76,17 @@ class ProcessRecurrentTask():
             self.task['end'].isoformat(),
             next_task['r'],
         )
-        if parent_task['wait'] is not None:
+        if parent_task['rwait'] is not None:
             next_task['wait'] = '{} - ({} - {})'.format(
                     next_task['due'].isoformat(),
                     parent_task['due'].isoformat(),
-                    parent_task['wait'].isoformat(),
+                    parent_task['rwait'].isoformat(),
             )
-        if parent_task['scheduled'] is not None:
+        if parent_task['rscheduled'] is not None:
             next_task['scheduled'] = '{} - ({} - {})'.format(
                     next_task['due'].isoformat(),
                     parent_task['due'].isoformat(),
-                    parent_task['scheduled'].isoformat(),
+                    parent_task['rscheduled'].isoformat(),
             )
 
         try:
@@ -97,12 +106,28 @@ class ProcessRecurrentTask():
         '''Creates the next periodic task and updates the parent task'''
 
         parent_task = self.tw.tasks.get(uuid=self.task['rparent'])
+        if type(parent_task['rwait']) is str:
+            parent_task['rwait'] = self.tw.convert_datetime_string(
+                parent_task['rwait']
+            )
+        if type(parent_task['rscheduled']) is str:
+            parent_task['rscheduled'] = self.tw.convert_datetime_string(
+                parent_task['rscheduled']
+            )
         if parent_task['status'] == 'deleted' or \
                 parent_task['status'] == 'completed':
             return
 
         next_task_template = self._copy_task(
-            pop=['due', 'recur', 'rlastinstance', 'status', 'end'],
+            pop=[
+                'due',
+                'recur',
+                'rlastinstance',
+                'rwait',
+                'rscheduled',
+                'status',
+                'end',
+            ],
             task=parent_task,
         )
 
@@ -125,20 +150,20 @@ class ProcessRecurrentTask():
                 try:
                     self.tw.tasks.get(
                         rparent=self.task['rparent'],
-                        due=next_task['due'],
+                        due=next_task['due'].isoformat(),
                     )
                 except Task.DoesNotExist:
-                    if parent_task['wait'] is not None:
+                    if parent_task['rwait'] is not None:
                         next_task['wait'] = '{} - ({} - {})'.format(
                                 next_task['due'].isoformat(),
                                 parent_task['due'].isoformat(),
-                                parent_task['wait'].isoformat(),
+                                parent_task['rwait'].isoformat(),
                         )
-                    if parent_task['scheduled'] is not None:
+                    if parent_task['rscheduled'] is not None:
                         next_task['scheduled'] = '{} - ({} - {})'.format(
                                 next_task['due'].isoformat(),
                                 parent_task['due'].isoformat(),
-                                parent_task['scheduled'].isoformat(),
+                                parent_task['rscheduled'].isoformat(),
                         )
                     next_task.save()
                 if next_task['due'] > self.local_zone.localize(
