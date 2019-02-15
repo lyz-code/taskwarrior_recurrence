@@ -30,18 +30,27 @@ report.recurring.filter=status:recurring
 uda.rtype.label=Recur.Type
 uda.rtype.type=string
 uda.rtype.values=chained,periodic
-uda.r.label=R
+uda.r.label=TwRecurrence
 uda.r.type=string
+uda.rparent.label=Parent task
+uda.rparent.type=string
+uda.rwait.label=Recur.Wait
+uda.rwait.type=date
+uda.rscheduled.label=Recur.Scheduled
+uda.rscheduled.type=date
+uda.rlastinstance.label=Last child task
+uda.rlastinstance.type=string
 ```
 
 ```bash
 cd ~/.task
 mkdir hooks
+cd hooks
 git clone https://git.digitales.cslabrecha.org/lyz/taskwarrior_recurrence
 cd taskwarrior_recurrence/taskwarrior_recurrence
-ln -s main.py ../../
-ln -s on_add.py ../../on-add.fix-recurrence.py
-ln -s on_exit.py ../../on-exit.fix-recurrence.py
+ln -s $PWD/main.py ../../
+ln -s $PWD/on_add.py ../../on-add.fix-recurrence.py
+ln -s $PWD/on_exit.py ../../on-exit.fix-recurrence.py
 ```
 
 ## Chained recurrence
@@ -71,6 +80,9 @@ a new task with the due, wait and schedule attributes set to:
 * due:         instance[N-1].end + template.recur
 * wait:        instance.due + (template.due - template.wait)
 * scheduled:   instance.due + (template.due - template.scheduled)
+
+If you want to use the `wait` and `schedule` attributes, use `rwait` and
+`rschedule` instead.
 
 ### Modify a recurrent chained task
 
@@ -121,6 +133,9 @@ a new task with the due, wait and schedule attributes set to:
 Resulting of a `due` of the next instance of the periodic task since today. So
 `N` is incremented by one till it finds a `due` > `now`.
 
+If you want to use the `wait` and `schedule` attributes, use `rwait` and
+`rschedule` instead.
+
 ### Modify a recurrent periodic task
 
 If you want to edit the recurrence, wait, or schedule of a periodic task you have
@@ -169,6 +184,11 @@ To make the parent task disappear I've set the `recur == r` but with the
 `recurrence=no` in the config it will do nothing.
 
 To visualize the tasks you should show the recur with the r value
+
+### Why didn't you use the `wait` or `scheduled` attribute?
+
+I tried to use it but it didn't do what its expected, therefore I'll use the
+`rwait` and `rscheduled` attributes.
 
 ## Todo
 
