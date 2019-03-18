@@ -43,15 +43,6 @@ class ProcessRecurrentTask():
 
         parent_task = self.tw.tasks.get(uuid=self.task['rparent'])
 
-        if type(parent_task['rwait']) is str:
-            parent_task['rwait'] = self.tw.convert_datetime_string(
-                parent_task['rwait']
-            )
-        if type(parent_task['rscheduled']) is str:
-            parent_task['rscheduled'] = self.tw.convert_datetime_string(
-                parent_task['rscheduled']
-            )
-
         if parent_task['rtype'] == 'chained':
             self.synthetize_next_chained()
         elif parent_task['rtype'] == 'periodic':
@@ -61,6 +52,16 @@ class ProcessRecurrentTask():
         '''Creates the next chained task and updates the parent task'''
 
         parent_task = self.tw.tasks.get(uuid=self.task['rparent'])
+
+        if type(parent_task['rwait']) is str:
+            parent_task['rwait'] = self.tw.convert_datetime_string(
+                parent_task['rwait']
+            )
+        if type(parent_task['rscheduled']) is str:
+            parent_task['rscheduled'] = self.tw.convert_datetime_string(
+                parent_task['rscheduled']
+            )
+
         if parent_task['status'] == 'deleted' or \
                 parent_task['status'] == 'completed':
             return
