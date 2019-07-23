@@ -31,6 +31,7 @@ class ProcessRecurrentTask():
         # tasks
         self.task['recur'] = self.task['r']
         self.task['rlastinstance'] = child_task['uuid']
+        self.task['status'] = "recurring"
         return self.task
 
     def delete_child_task(self):
